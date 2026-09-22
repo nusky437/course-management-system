@@ -1416,4 +1416,94 @@ textarea.input {
 
 }
 
+/* ---------- Course Filters ---------- */
 
+.filter-bar {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+  gap: 12px;
+  margin: 24px 0 16px;
+}
+
+.filter-bar .input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+
+/* ---------- Active Filters ---------- */
+
+.active-filters {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.filter-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 12px;
+  border-radius: 20px;
+  background: #eef2ff;
+  color: #374151;
+  font-size: 14px;
+}
+
+
+/* ---------- Clear All Filters ---------- */
+
+.clear-filters {
+  border: none;
+  background: transparent;
+  color: #dc2626;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 7px 10px;
+}
+
+.clear-filters:hover {
+  text-decoration: underline;
+}
+
+
+/* ---------- Result Counter ---------- */
+
+.result-count {
+  margin: 16px 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 900px) {
+  .filter-bar {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .filter-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .active-filters {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .clear-filters {
+    padding-left: 0;
+  }
+}
