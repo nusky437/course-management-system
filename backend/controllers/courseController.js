@@ -1,5 +1,13 @@
 const Course = require("../models/courseModel");
 const User = require("../models/userModel");
+const validateCourse = require("../helpers/validateCourse");
+
+const sendValidationError = (res, errors) => {
+  return res.status(400).json({
+    message: "Validation failed",
+    errors,
+  });
+};
 
 // Get all courses
 const getAllCourses = async (req, res) => {
@@ -52,32 +60,21 @@ const getCourseById = async (req, res) => {
 // Create course
 const createCourse = async (req, res) => {
   try {
-    const {
-      title,
-      category,
-      level,
-      duration,
-      price,
-      image,
-      description,
-    } = req.body;
+    const validation = validateCourse(req.body);
 
-    // Basic validation
-    if (!title || !category || !level) {
-      return res.status(400).json({
-        message: "Title, category and level are required",
+    if (!validation.isValid) {
+      return sendValidationError(res, validation.errors);
+    }
+
+    const duplicateCourse = await Course.getByTitle(validation.data.title);
+
+    if (duplicateCourse) {
+      return sendValidationError(res, {
+        title: "Course title already exists",
       });
     }
 
-    const courseId = await Course.create({
-      title,
-      category,
-      level,
-      duration,
-      price,
-      image,
-      description,
-    });
+    const courseId = await Course.create(validation.data);
 
     res.status(201).json({
       message: "Course created successfully",
@@ -99,15 +96,11 @@ const updateCourse = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const {
-      title,
-      category,
-      level,
-      duration,
-      price,
-      image,
-      description,
-    } = req.body;
+    const validation = validateCourse(req.body);
+
+    if (!validation.isValid) {
+      return sendValidationError(res, validation.errors);
+    }
 
     // Check if course exists
     const existingCourse = await Course.getById(id);
@@ -118,15 +111,15 @@ const updateCourse = async (req, res) => {
       });
     }
 
-    await Course.update(id, {
-      title,
-      category,
-      level,
-      duration,
-      price,
-      image,
-      description,
-    });
+    const duplicateCourse = await Course.getByTitle(validation.data.title);
+
+    if (duplicateCourse && Number(duplicateCourse.id) !== Number(id)) {
+      return sendValidationError(res, {
+        title: "Course title already exists",
+      });
+    }
+
+    await Course.update(id, validation.data);
 
     // Get updated course
     const updatedCourse = await Course.getById(id);

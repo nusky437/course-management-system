@@ -746,6 +746,21 @@ a:hover {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
+.input-error {
+  border-color: var(--color-danger);
+}
+
+.input-error:focus {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.14);
+}
+
+.field-error {
+  color: var(--color-error-text);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
 textarea.input {
   resize: vertical;
 }

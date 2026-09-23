@@ -22,6 +22,16 @@ const Course = {
     return rows[0];
   },
 
+  // Find a course by title. Used for duplicate title validation.
+  async getByTitle(title) {
+    const [rows] = await db.execute(
+      "SELECT * FROM courses WHERE LOWER(title) = LOWER(?) LIMIT 1",
+      [title]
+    );
+
+    return rows[0];
+  },
+
 
   // Create course
   async create(course) {
