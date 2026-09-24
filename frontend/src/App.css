@@ -1078,6 +1078,32 @@ textarea.input {
   width: 150px;
 }
 
+/* ---------- Sortable table headers (CR-003) ---------- */
+
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortable-th:hover {
+  background-color: #eef2f7;
+}
+
+.th-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sort-icon {
+  font-size: 0.85em;
+  color: var(--color-primary);
+}
+
+.sort-icon-inactive {
+  color: #cbd5e1;
+}
+
 .table-actions {
   display: flex;
   gap: 8px;
@@ -1443,6 +1469,24 @@ textarea.input {
 .filter-bar .input {
   width: 100%;
   box-sizing: border-box;
+}
+
+/* Admin (Manage Courses) filter bar: search + category + level + min/max price + reset */
+.filter-bar-admin {
+  grid-template-columns: 2fr 1fr 1fr 0.8fr 0.8fr auto;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .filter-bar-admin {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .filter-bar-admin {
+    grid-template-columns: 1fr;
+  }
 }
 
 
