@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { FaBook, FaEye, FaGraduationCap, FaSearch } from "react-icons/fa";
+import {
+  FaBook,
+  FaEye,
+  FaGraduationCap,
+  FaSearch
+} from "react-icons/fa";
 
 import api from "../services/api";
 import { getUser } from "../services/auth";
@@ -34,7 +39,9 @@ function StudentDashboard() {
           api.get("/courses/stats"),
         ]);
 
-        setEnrollments(enrollmentsResponse.data.enrollments);
+        setEnrollments(
+          enrollmentsResponse.data.enrollments || []
+        );
 
         setStats({
           courseCount: statsResponse.data.courseCount,
@@ -60,14 +67,79 @@ function StudentDashboard() {
   }, []);
 
 
-  // Only show the 3 most recent enrollments on the dashboard
-  const recentEnrollments = enrollments.slice(0, 3);
+  // ---------- Safely convert price to number ----------
 
+  const getSafePrice = (price) => {
+
+    const numericPrice = Number(price);
+
+    return Number.isFinite(numericPrice)
+      ? numericPrice
+      : 0;
+
+  };
+
+
+  // ---------- Calculate total enrolled course value ----------
+
+  const totalEnrollmentValue = enrollments.reduce(
+    (total, enrollment) => {
+
+      return total + getSafePrice(enrollment.price);
+
+    },
+    0
+  );
+
+
+  // ---------- Format price ----------
+
+  const formatPrice = (price) => {
+
+    return getSafePrice(price).toLocaleString("en-LK", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
+  };
+
+
+  // ---------- Show 3 most recent enrollments ----------
+
+  const recentEnrollments = [...enrollments]
+    .sort((a, b) => {
+
+      const dateA = new Date(a.enrolled_at).getTime();
+      const dateB = new Date(b.enrolled_at).getTime();
+
+      const safeDateA = Number.isFinite(dateA)
+        ? dateA
+        : 0;
+
+      const safeDateB = Number.isFinite(dateB)
+        ? dateB
+        : 0;
+
+      return safeDateB - safeDateA;
+
+    })
+    .slice(0, 3);
+
+
+  // ---------- Format date ----------
 
   const formatDate = (value) => {
+
     if (!value) return "-";
 
-    return new Date(value).toLocaleDateString();
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return "-";
+    }
+
+    return date.toLocaleDateString();
+
   };
 
 
@@ -83,14 +155,20 @@ function StudentDashboard() {
         <div className="page-header">
 
           <div>
+
             <h1>Student Dashboard</h1>
 
             <p className="page-subtitle">
-              Welcome back, {user?.full_name || user?.username}!
+              Welcome back,{" "}
+              {user?.full_name || user?.username}!
             </p>
+
           </div>
 
-          <Link to="/courses" className="btn btn-primary">
+          <Link
+            to="/courses"
+            className="btn btn-primary"
+          >
             <FaSearch />
             Browse Courses
           </Link>
@@ -100,118 +178,226 @@ function StudentDashboard() {
 
         {/* ---------- Error ---------- */}
 
-        {error && <p className="error">{error}</p>}
+        {error && (
+          <p className="error">
+            {error}
+          </p>
+        )}
 
 
-        {/* ---------- Stat cards ---------- */}
+        {/* ---------- Stat Cards ---------- */}
 
         <div className="dashboard-grid">
 
+          {/* My Enrolled Courses */}
+
           <div className="dashboard-card">
+
             <span className="dashboard-card-value">
               {loading ? "..." : enrollments.length}
             </span>
+
             <span className="dashboard-card-label">
               My Enrolled Courses
             </span>
+
           </div>
 
+
+          {/* Total Course Value */}
+
           <div className="dashboard-card">
+
+            <span className="dashboard-card-value">
+
+              {loading
+                ? "..."
+                : `Rs. ${formatPrice(totalEnrollmentValue)}`}
+
+            </span>
+
+            <span className="dashboard-card-label">
+              Total Course Value
+            </span>
+
+          </div>
+
+
+          {/* Courses Available */}
+
+          <div className="dashboard-card">
+
             <span className="dashboard-card-value">
               {loading ? "..." : stats.courseCount}
             </span>
+
             <span className="dashboard-card-label">
               Courses Available
             </span>
+
           </div>
 
+
+          {/* Registered Students */}
+
           <div className="dashboard-card">
+
             <span className="dashboard-card-value">
               {loading ? "..." : stats.studentCount}
             </span>
+
             <span className="dashboard-card-label">
               Registered Students
             </span>
+
           </div>
 
         </div>
 
 
-        {/* ---------- Recent enrollments ---------- */}
+        {/* ---------- Recent Enrollments ---------- */}
 
         <section className="section-card">
 
           <div className="section-card-header">
-            <h2>My Recent Enrollments</h2>
 
-            <Link to="/my-enrollments" className="link-inline">
-              <FaEye /> View all
+            <h2>
+              My Recent Enrollments
+            </h2>
+
+            <Link
+              to="/my-enrollments"
+              className="link-inline"
+            >
+              <FaEye />
+              View all
             </Link>
+
           </div>
 
 
-          {loading && <p className="loading">Loading...</p>}
-
-
-          {!loading && recentEnrollments.length === 0 && (
-            <p className="empty">
-              You have not enrolled in any courses yet. Head over to the
-              courses page and enroll in your first course.
+          {loading && (
+            <p className="loading">
+              Loading...
             </p>
           )}
 
 
+          {!loading && recentEnrollments.length === 0 && (
+
+            <p className="empty">
+              You have not enrolled in any courses yet.
+              Head over to the courses page and enroll in
+              your first course.
+            </p>
+
+          )}
+
+
           {!loading && recentEnrollments.length > 0 && (
+
             <div className="table-wrapper">
+
               <table className="table">
+
                 <thead>
+
                   <tr>
                     <th>Course</th>
                     <th>Category</th>
                     <th>Level</th>
                     <th>Enrolled On</th>
                   </tr>
+
                 </thead>
 
                 <tbody>
+
                   {recentEnrollments.map((enrollment) => (
+
                     <tr key={enrollment.id}>
+
                       <td>
-                        <Link to={`/courses/${enrollment.course_id}`}>
+                        <Link
+                          to={`/courses/${enrollment.course_id}`}
+                        >
                           {enrollment.title}
                         </Link>
                       </td>
-                      <td>{enrollment.category}</td>
-                      <td>{enrollment.level}</td>
-                      <td>{formatDate(enrollment.enrolled_at)}</td>
+
+                      <td>
+                        {enrollment.category}
+                      </td>
+
+                      <td>
+                        {enrollment.level}
+                      </td>
+
+                      <td>
+                        {formatDate(
+                          enrollment.enrolled_at
+                        )}
+                      </td>
+
                     </tr>
+
                   ))}
+
                 </tbody>
+
               </table>
+
             </div>
+
           )}
 
         </section>
 
 
-        {/* ---------- Quick actions ---------- */}
+        {/* ---------- Quick Actions ---------- */}
 
         <section className="section-card">
 
           <div className="section-card-header">
-            <h2>Quick Actions</h2>
+
+            <h2>
+              Quick Actions
+            </h2>
+
           </div>
+
 
           <div className="quick-actions">
 
-            <Link to="/courses" className="quick-action">
-              <span className="quick-action-icon"><FaBook /></span>
-              <span>Browse all courses</span>
+            <Link
+              to="/courses"
+              className="quick-action"
+            >
+
+              <span className="quick-action-icon">
+                <FaBook />
+              </span>
+
+              <span>
+                Browse all courses
+              </span>
+
             </Link>
 
-            <Link to="/my-enrollments" className="quick-action">
-              <span className="quick-action-icon"><FaGraduationCap /></span>
-              <span>View my enrollments</span>
+
+            <Link
+              to="/my-enrollments"
+              className="quick-action"
+            >
+
+              <span className="quick-action-icon">
+                <FaGraduationCap />
+              </span>
+
+              <span>
+                View my enrollments
+              </span>
+
             </Link>
 
           </div>
@@ -226,6 +412,5 @@ function StudentDashboard() {
   );
 }
 
+
 export default StudentDashboard;
-
-
