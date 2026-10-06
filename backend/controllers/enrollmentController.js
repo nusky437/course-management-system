@@ -16,29 +16,9 @@ const enrollInCourse = async (req, res) => {
       });
     }
 
-    // Check whether course exists
-    const course = await Course.getById(courseId);
-
-    if (!course) {
-      return res.status(404).json({
-        message: "Course not found",
-      });
-    }
-
-    // Check whether student is already enrolled
-    const existingEnrollment =
-      await Enrollment.findByStudentAndCourse(
-        studentId,
-        courseId
-      );
-
-    if (existingEnrollment) {
-      return res.status(409).json({
-        message: "You are already enrolled in this course",
-      });
-    }
-
     // Create enrollment
+    // Capacity check + enrollment insertion
+    // are handled atomically inside the model.
     const enrollmentId = await Enrollment.create(
       studentId,
       courseId
@@ -55,6 +35,30 @@ const enrollInCourse = async (req, res) => {
       error.message
     );
 
+    // Course not found
+    if (error.code === "COURSE_NOT_FOUND") {
+      return res.status(404).json({
+        message: "Course not found",
+      });
+    }
+
+    // Already enrolled
+    if (error.code === "ALREADY_ENROLLED") {
+      return res.status(409).json({
+        message: "You are already enrolled in this course",
+        code: "ALREADY_ENROLLED",
+      });
+    }
+
+    // Course is full
+    if (error.code === "COURSE_FULL") {
+      return res.status(409).json({
+        message: "Course is full. No seats are available.",
+        code: "COURSE_FULL",
+      });
+    }
+
+    // Other server errors
     res.status(500).json({
       message: "Internal server error",
     });

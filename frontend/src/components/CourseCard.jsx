@@ -3,6 +3,10 @@ import { FaEye } from "react-icons/fa";
 
 function CourseCard({ course }) {
 
+  const isFull =
+    course.max_students !== null &&
+    Number(course.enrolled_count) >= Number(course.max_students);
+
   return (
 
     <article className="course-card">
@@ -48,6 +52,25 @@ function CourseCard({ course }) {
 
           <li>
             <strong>Price:</strong> Rs. {course.price}
+          </li>
+
+          {/* Course availability */}
+          <li>
+            <strong>Availability:</strong>{" "}
+
+            {course.max_students === null ? (
+              <span className="course-availability unlimited">
+                Unlimited
+              </span>
+            ) : isFull ? (
+              <span className="course-availability full">
+                Course Full
+              </span>
+            ) : (
+              <span className="course-availability available">
+                {course.enrolled_count} / {course.max_students} students
+              </span>
+            )}
           </li>
         </ul>
 

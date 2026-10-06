@@ -33,7 +33,9 @@ CREATE TABLE IF NOT EXISTS courses (
 
     image VARCHAR(500),
 
-    description TEXT
+    description TEXT,
+
+    max_students INT NULL
 );
 
 

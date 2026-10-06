@@ -15,6 +15,7 @@ const hasTwoDecimalPlacesOrLess = (value) => {
 };
 
 const validateCourse = (courseData) => {
+
   const cleanedCourse = {
     title: trimValue(courseData.title || ""),
     category: trimValue(courseData.category || ""),
@@ -23,10 +24,14 @@ const validateCourse = (courseData) => {
     price: trimValue(courseData.price ?? ""),
     image: trimValue(courseData.image || ""),
     description: trimValue(courseData.description || ""),
+
+    // Maximum students
+    max_students: trimValue(courseData.max_students ?? ""),
   };
 
   const errors = {};
 
+  // Title validation
   if (!cleanedCourse.title) {
     errors.title = "Title is required";
   } else if (cleanedCourse.title.length < 3) {
@@ -35,6 +40,7 @@ const validateCourse = (courseData) => {
     errors.title = "Title cannot exceed 100 characters";
   }
 
+  // Category validation
   if (!cleanedCourse.category) {
     errors.category = "Category is required";
   } else if (cleanedCourse.category.length < 2) {
@@ -43,16 +49,20 @@ const validateCourse = (courseData) => {
     errors.category = "Category cannot exceed 50 characters";
   }
 
+  // Level validation
   if (!ALLOWED_LEVELS.includes(cleanedCourse.level)) {
     errors.level = "Level must be Beginner, Intermediate, or Advanced";
   }
 
+  // Duration validation
   if (!cleanedCourse.duration) {
     errors.duration = "Duration is required";
   } else if (!/^[1-9]\d*\s+(Days|Weeks|Months)$/.test(cleanedCourse.duration)) {
-    errors.duration = "Duration must follow the format: 5 Days, 8 Weeks, or 3 Months";
+    errors.duration =
+      "Duration must follow the format: 5 Days, 8 Weeks, or 3 Months";
   }
 
+  // Price validation
   const priceNumber = Number(cleanedCourse.price);
 
   if (cleanedCourse.price === "") {
@@ -67,34 +77,74 @@ const validateCourse = (courseData) => {
     errors.price = "Price cannot contain more than two decimal places";
   }
 
+  // Image validation
   if (cleanedCourse.image) {
+
     if (cleanedCourse.image.length > 500) {
       errors.image = "Image URL cannot exceed 500 characters";
     } else {
+
       try {
         const imageUrl = new URL(cleanedCourse.image);
 
         if (!["http:", "https:"].includes(imageUrl.protocol)) {
           errors.image = "Image must be a valid HTTP or HTTPS URL";
         }
+
       } catch (error) {
         errors.image = "Image must be a valid HTTP or HTTPS URL";
       }
     }
   }
 
+  // Description validation
   if (cleanedCourse.description.length > 1000) {
     errors.description = "Description cannot exceed 1,000 characters";
   }
 
+  // =========================================================
+  // Maximum Students validation
+  // =========================================================
+
+  if (cleanedCourse.max_students !== "") {
+
+    const maxStudentsText = String(cleanedCourse.max_students).trim();
+
+    // Only positive whole numbers are allowed
+    if (!/^[1-9]\d*$/.test(maxStudentsText)) {
+
+      errors.max_students =
+        "Maximum Students must be a positive whole number";
+
+    }
+  }
+
   return {
+
     isValid: Object.keys(errors).length === 0,
+
     errors,
+
     data: {
+
       ...cleanedCourse,
-      price: cleanedCourse.price === "" ? "" : priceNumber,
-      image: cleanedCourse.image || null,
-      description: cleanedCourse.description || null,
+
+      price:
+        cleanedCourse.price === ""
+          ? ""
+          : priceNumber,
+
+      image:
+        cleanedCourse.image || null,
+
+      description:
+        cleanedCourse.description || null,
+
+      // Blank = unlimited = NULL
+      max_students:
+        cleanedCourse.max_students === ""
+          ? null
+          : Number(cleanedCourse.max_students),
     },
   };
 };

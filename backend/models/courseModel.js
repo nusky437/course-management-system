@@ -2,25 +2,68 @@ const db = require("../config/db");
 
 const Course = {
 
-  // Get all courses
+  // Get all courses with seat availability
   async getAll() {
-    const [rows] = await db.execute(
-      "SELECT * FROM courses"
-    );
+    const [rows] = await db.execute(`
+      SELECT
+        c.*,
+        COUNT(e.id) AS enrolled_count,
+
+        CASE
+          WHEN c.max_students IS NULL THEN NULL
+          ELSE c.max_students - COUNT(e.id)
+        END AS seats_remaining,
+
+        CASE
+          WHEN c.max_students IS NULL THEN FALSE
+          WHEN COUNT(e.id) >= c.max_students THEN TRUE
+          ELSE FALSE
+        END AS is_full
+
+      FROM courses c
+
+      LEFT JOIN enrollments e
+        ON e.course_id = c.id
+
+      GROUP BY c.id
+      ORDER BY c.id DESC
+    `);
 
     return rows;
   },
 
 
-  // Get one course
+  // Get one course with seat availability
   async getById(id) {
-    const [rows] = await db.execute(
-      "SELECT * FROM courses WHERE id = ?",
-      [id]
-    );
+    const [rows] = await db.execute(`
+      SELECT
+        c.*,
+        COUNT(e.id) AS enrolled_count,
+
+        CASE
+          WHEN c.max_students IS NULL THEN NULL
+          ELSE c.max_students - COUNT(e.id)
+        END AS seats_remaining,
+
+        CASE
+          WHEN c.max_students IS NULL THEN FALSE
+          WHEN COUNT(e.id) >= c.max_students THEN TRUE
+          ELSE FALSE
+        END AS is_full
+
+      FROM courses c
+
+      LEFT JOIN enrollments e
+        ON e.course_id = c.id
+
+      WHERE c.id = ?
+
+      GROUP BY c.id
+    `, [id]);
 
     return rows[0];
   },
+
 
   // Find a course by title. Used for duplicate title validation.
   async getByTitle(title) {
@@ -44,12 +87,22 @@ const Course = {
       price,
       image,
       description,
+      max_students,
     } = course;
 
     const [result] = await db.execute(
       `INSERT INTO courses
-       (title, category, level, duration, price, image, description)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+       (
+         title,
+         category,
+         level,
+         duration,
+         price,
+         image,
+         description,
+         max_students
+       )
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         title,
         category,
@@ -58,6 +111,7 @@ const Course = {
         price,
         image,
         description,
+        max_students,
       ]
     );
 
@@ -76,6 +130,7 @@ const Course = {
       price,
       image,
       description,
+      max_students,
     } = course;
 
     const [result] = await db.execute(
@@ -86,7 +141,8 @@ const Course = {
            duration = ?,
            price = ?,
            image = ?,
-           description = ?
+           description = ?,
+           max_students = ?
        WHERE id = ?`,
       [
         title,
@@ -96,6 +152,7 @@ const Course = {
         price,
         image,
         description,
+        max_students,
         id,
       ]
     );

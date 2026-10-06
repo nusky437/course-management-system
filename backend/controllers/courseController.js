@@ -111,14 +111,43 @@ const updateCourse = async (req, res) => {
       });
     }
 
-    const duplicateCourse = await Course.getByTitle(validation.data.title);
+    // Check duplicate course title
+    const duplicateCourse = await Course.getByTitle(
+      validation.data.title
+    );
 
-    if (duplicateCourse && Number(duplicateCourse.id) !== Number(id)) {
+    if (
+      duplicateCourse &&
+      Number(duplicateCourse.id) !== Number(id)
+    ) {
       return sendValidationError(res, {
         title: "Course title already exists",
       });
     }
 
+    // =====================================================
+    // Maximum Students Capacity Check
+    // =====================================================
+
+    const newMaxStudents = validation.data.max_students;
+
+    // If a limited capacity is provided,
+    // it cannot be lower than the current enrolled count.
+    if (
+      newMaxStudents !== null &&
+      newMaxStudents < Number(existingCourse.enrolled_count)
+    ) {
+      return res.status(400).json({
+        message:
+          "Maximum Students cannot be less than the current enrolled student count",
+        errors: {
+          max_students:
+            `Maximum Students must be at least ${existingCourse.enrolled_count}`,
+        },
+      });
+    }
+
+    // Update course
     await Course.update(id, validation.data);
 
     // Get updated course
