@@ -118,6 +118,19 @@ const Enrollment = {
     return result;
   },
 
+
+  // Delete a student's own enrollment
+  async deleteByStudent(id, studentId) {
+    const [result] = await db.execute(
+      `DELETE FROM enrollments
+       WHERE id = ?
+       AND student_id = ?`,
+      [id, studentId]
+    );
+
+    return result;
+  },
+
 };
 
 module.exports = Enrollment;

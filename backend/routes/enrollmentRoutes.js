@@ -7,6 +7,7 @@ const {
   getMyEnrollments,
   getCourseEnrollments,
   getAllEnrollments,
+  cancelMyEnrollment,
   deleteEnrollment,
 } = require("../controllers/enrollmentController");
 
@@ -31,6 +32,16 @@ router.get(
   authMiddleware,
   roleMiddleware(["student"]),
   getMyEnrollments
+);
+
+
+// Student (JWT + student role required)
+// Cancel my own enrollment
+router.delete(
+  "/my/:id",
+  authMiddleware,
+  roleMiddleware(["student"]),
+  cancelMyEnrollment
 );
 
 
