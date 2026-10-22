@@ -18,8 +18,11 @@ function StudentDashboard() {
   const [enrollments, setEnrollments] = useState([]);
 
   const [stats, setStats] = useState({
-    courseCount: 0,
-    studentCount: 0,
+    enrolledCourses: 0,
+    distinctCategories: 0,
+    earliestEnrollment: null,
+    latestEnrollment: null,
+    recentEnrollments: [],
   });
 
   const [loading, setLoading] = useState(true);
@@ -34,31 +37,24 @@ function StudentDashboard() {
 
       try {
 
-        const [enrollmentsResponse, statsResponse] = await Promise.all([
+        const [reportResult, enrollmentsResult] = await Promise.allSettled([
+          api.get("/reports/my"),
           api.get("/enrollments/my"),
-          api.get("/courses/stats"),
         ]);
-
-        setEnrollments(
-          enrollmentsResponse.data.enrollments || []
-        );
-
-        setStats({
-          courseCount: statsResponse.data.courseCount,
-          studentCount: statsResponse.data.studentCount,
-        });
-
-      } catch (error) {
-
-        setError(
-          error.response?.data?.message ||
-          "Failed to load your dashboard"
-        );
-
+        if (reportResult.status === "fulfilled") {
+          setStats(reportResult.value.data.report);
+        } else {
+          setError("Your learning report could not be loaded. Please refresh to try again.");
+        }
+        if (enrollmentsResult.status === "fulfilled") {
+          setEnrollments(enrollmentsResult.value.data.enrollments || []);
+        } else {
+          setError((current) => current || "Your course list could not be loaded.");
+        }
+      } catch (loadError) {
+        setError("Dashboard data could not be loaded. Please refresh to try again.");
       } finally {
-
         setLoading(false);
-
       }
     };
 
@@ -67,63 +63,11 @@ function StudentDashboard() {
   }, []);
 
 
-  // ---------- Safely convert price to number ----------
-
-  const getSafePrice = (price) => {
-
-    const numericPrice = Number(price);
-
-    return Number.isFinite(numericPrice)
-      ? numericPrice
-      : 0;
-
-  };
-
-
-  // ---------- Calculate total enrolled course value ----------
-
-  const totalEnrollmentValue = enrollments.reduce(
-    (total, enrollment) => {
-
-      return total + getSafePrice(enrollment.price);
-
-    },
-    0
-  );
-
-
-  // ---------- Format price ----------
-
-  const formatPrice = (price) => {
-
-    return getSafePrice(price).toLocaleString("en-LK", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-
-  };
-
-
-  // ---------- Show 3 most recent enrollments ----------
-
-  const recentEnrollments = [...enrollments]
-    .sort((a, b) => {
-
-      const dateA = new Date(a.enrolled_at).getTime();
-      const dateB = new Date(b.enrolled_at).getTime();
-
-      const safeDateA = Number.isFinite(dateA)
-        ? dateA
-        : 0;
-
-      const safeDateB = Number.isFinite(dateB)
-        ? dateB
-        : 0;
-
-      return safeDateB - safeDateA;
-
-    })
-    .slice(0, 3);
+  // The report endpoint supplies the recent list. Fall back to the existing
+  // own-enrollments endpoint if the report request fails.
+  const recentEnrollments = stats.recentEnrollments.length
+    ? stats.recentEnrollments
+    : enrollments.slice(0, 5);
 
 
   // ---------- Format date ----------
@@ -194,7 +138,7 @@ function StudentDashboard() {
           <div className="dashboard-card">
 
             <span className="dashboard-card-value">
-              {loading ? "..." : enrollments.length}
+              {loading ? "..." : stats.enrolledCourses}
             </span>
 
             <span className="dashboard-card-label">
@@ -204,20 +148,18 @@ function StudentDashboard() {
           </div>
 
 
-          {/* Total Course Value */}
+          {/* Distinct course categories */}
 
           <div className="dashboard-card">
 
             <span className="dashboard-card-value">
 
-              {loading
-                ? "..."
-                : `Rs. ${formatPrice(totalEnrollmentValue)}`}
+              {loading ? "..." : stats.distinctCategories}
 
             </span>
 
             <span className="dashboard-card-label">
-              Total Course Value
+              Distinct Categories
             </span>
 
           </div>
@@ -228,11 +170,11 @@ function StudentDashboard() {
           <div className="dashboard-card">
 
             <span className="dashboard-card-value">
-              {loading ? "..." : stats.courseCount}
+              {loading ? "..." : formatDate(stats.earliestEnrollment)}
             </span>
 
             <span className="dashboard-card-label">
-              Courses Available
+              First Enrollment
             </span>
 
           </div>
@@ -243,11 +185,11 @@ function StudentDashboard() {
           <div className="dashboard-card">
 
             <span className="dashboard-card-value">
-              {loading ? "..." : stats.studentCount}
+              {loading ? "..." : formatDate(stats.latestEnrollment)}
             </span>
 
             <span className="dashboard-card-label">
-              Registered Students
+              Latest Enrollment
             </span>
 
           </div>

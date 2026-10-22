@@ -1715,3 +1715,86 @@ textarea.input {
   }
 
 }
+
+
+/* =========================================
+   CR-008: Admin Enrollments search, filters, pagination
+   ========================================= */
+
+.filter-bar-enrollments {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  align-items: end;
+}
+
+.filter-bar-enrollments .form-group {
+  min-width: 0;
+}
+
+.pagination-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  padding: 14px 4px 4px;
+  margin-top: 12px;
+
+  border-top: 1px solid var(--color-border);
+}
+
+.pagination-range {
+  font-weight: 600;
+}
+
+.pagination-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination-info {
+  padding: 0 8px;
+  font-size: 0.9rem;
+}
+
+/* CR-009 reporting dashboard */
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.report-list {
+  display: grid;
+  gap: 16px;
+}
+
+.report-row-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.report-bar-track {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.report-bar {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+  transition: width 0.2s ease;
+}
+
+@media (max-width: 600px) {
+  .pagination-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

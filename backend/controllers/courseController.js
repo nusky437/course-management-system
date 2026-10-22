@@ -1,5 +1,6 @@
 const Course = require("../models/courseModel");
 const User = require("../models/userModel");
+const Enrollment = require("../models/enrollmentModel");
 const validateCourse = require("../helpers/validateCourse");
 
 const sendValidationError = (res, errors) => {
@@ -202,12 +203,16 @@ const deleteCourse = async (req, res) => {
 const getStats = async (req, res) => {
   try {
     const courses = await Course.getAll();
-    const studentCount = await User.countByRole("student");
+    const [studentCount, enrolledStudentCount] = await Promise.all([
+      User.countByRole("student"),
+      Enrollment.countDistinctStudents(),
+    ]);
 
     res.status(200).json({
       message: "Statistics retrieved successfully",
       courseCount: courses.length,
       studentCount: studentCount,
+      enrolledStudentCount,
     });
 
   } catch (error) {

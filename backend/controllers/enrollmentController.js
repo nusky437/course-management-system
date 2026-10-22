@@ -128,15 +128,141 @@ const getCourseEnrollments = async (req, res) => {
 };
 
 
-// Get all enrollments
+// ---------- CR-008: query-parameter validation ----------
+
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 20;
+const MAX_LIMIT = 100;
+const MAX_SEARCH_LENGTH = 100;
+
+const SORT_FIELDS = ["date", "student", "course"];
+const SORT_ORDERS = ["asc", "desc"];
+
+// Strict YYYY-MM-DD that is also a real calendar date (rejects 2026-02-31)
+const isValidDate = (value) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+
+  const date = new Date(`${value}T00:00:00Z`);
+
+  return (
+    !Number.isNaN(date.getTime()) &&
+    date.toISOString().slice(0, 10) === value
+  );
+};
+
+// Returns { error } or { filters }
+const parseEnrollmentQuery = (query) => {
+  const { q, courseId, from, to, sort, order, page, limit } = query;
+
+  // ?q=a&q=b gives an array - reject anything that is not a plain string
+  for (const [name, value] of Object.entries({
+    q, courseId, from, to, sort, order, page, limit,
+  })) {
+    if (value !== undefined && typeof value !== "string") {
+      return { error: `Invalid ${name} parameter` };
+    }
+  }
+
+  // page
+  let pageNumber = DEFAULT_PAGE;
+  if (page !== undefined) {
+    if (!/^\d+$/.test(page) || Number(page) < 1 || !Number.isSafeInteger(Number(page))) {
+      return { error: "page must be a positive integer starting from 1" };
+    }
+    pageNumber = Number(page);
+  }
+
+  // limit
+  let limitNumber = DEFAULT_LIMIT;
+  if (limit !== undefined) {
+    if (!/^\d+$/.test(limit) || Number(limit) < 1 || Number(limit) > MAX_LIMIT) {
+      return { error: `limit must be an integer between 1 and ${MAX_LIMIT}` };
+    }
+    limitNumber = Number(limit);
+  }
+
+  if (!Number.isSafeInteger((pageNumber - 1) * limitNumber)) {
+    return { error: "page is too large" };
+  }
+
+  // courseId
+  if (courseId !== undefined && !/^[1-9]\d{0,9}$/.test(courseId)) {
+    return { error: "courseId must be a positive integer" };
+  }
+
+  // dates
+  if (from !== undefined && !isValidDate(from)) {
+    return { error: "from must be a valid date in YYYY-MM-DD format" };
+  }
+
+  if (to !== undefined && !isValidDate(to)) {
+    return { error: "to must be a valid date in YYYY-MM-DD format" };
+  }
+
+  if (from !== undefined && to !== undefined && from > to) {
+    return { error: "from date cannot be later than to date" };
+  }
+
+  // sorting (default: enrollment date, newest first)
+  const sortField = sort === undefined ? "date" : sort;
+  if (!SORT_FIELDS.includes(sortField)) {
+    return { error: `sort must be one of: ${SORT_FIELDS.join(", ")}` };
+  }
+
+  const sortOrder = order === undefined ? "desc" : order;
+  if (!SORT_ORDERS.includes(sortOrder)) {
+    return { error: "order must be asc or desc" };
+  }
+
+  // search text
+  const search = q === undefined ? "" : q.trim();
+  if (search.length > MAX_SEARCH_LENGTH) {
+    return { error: `q cannot be longer than ${MAX_SEARCH_LENGTH} characters` };
+  }
+
+  return {
+    filters: {
+      q: search,
+      courseId: courseId === undefined ? null : Number(courseId),
+      from: from === undefined ? null : from,
+      to: to === undefined ? null : to,
+      sort: sortField,
+      order: sortOrder,
+      page: pageNumber,
+      limit: limitNumber,
+    },
+  };
+};
+
+
+// Get enrollments (search + filter + sort + pagination)
 const getAllEnrollments = async (req, res) => {
   try {
-    const enrollments =
-      await Enrollment.getAll();
+    // 1. Validate BEFORE touching the database
+    const { error, filters } = parseEnrollmentQuery(req.query);
+
+    if (error) {
+      return res.status(400).json({ message: error });
+    }
+
+    // 2. Separate COUNT(*) query (same filters, no paging)
+    const total = await Enrollment.countFiltered(filters);
+
+    // 3. Only fetch rows if there is something to show.
+    //    An out-of-range page simply returns an empty array (not 404).
+    const enrollments = total > 0
+      ? await Enrollment.getPaginated(filters)
+      : [];
 
     res.status(200).json({
-      message: "All enrollments retrieved successfully",
+      message: "Enrollments retrieved successfully",
       enrollments,
+      pagination: {
+        page: filters.page,
+        limit: filters.limit,
+        total,
+        totalPages: Math.ceil(total / filters.limit),
+      },
     });
 
   } catch (error) {

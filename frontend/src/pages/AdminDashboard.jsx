@@ -15,11 +15,18 @@ import Footer from "../components/Footer";
 function AdminDashboard() {
 
   const [stats, setStats] = useState({
-    courseCount: 0,
-    studentCount: 0,
+    totalCourses: 0,
+    totalStudents: 0,
+    totalEnrollments: 0,
+    studentsWithEnrollments: 0,
+    enrollmentsLast30Days: 0,
+    coursesWithoutEnrollments: 0,
+    enrollmentsByCategory: [],
+    topCourses: [],
   });
 
-  const [enrollments, setEnrollments] = useState([]);
+  // Only the 6 most recent enrollments (one small page from the server)
+  const [recentEnrollments, setRecentEnrollments] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -33,46 +40,32 @@ function AdminDashboard() {
 
       try {
 
-        const [statsResponse, enrollmentsResponse] = await Promise.all([
-          api.get("/courses/stats"),
-          api.get("/enrollments"),
+        const [reportResult, enrollmentsResult] = await Promise.allSettled([
+          api.get("/reports/overview"),
+          api.get("/enrollments", { params: { page: 1, limit: 6 } }),
         ]);
 
-        setStats({
-          courseCount: statsResponse.data.courseCount,
-          studentCount: statsResponse.data.studentCount,
-        });
+        if (reportResult.status === "fulfilled") {
+          setStats(reportResult.value.data.report);
+        } else {
+          setError("The report could not be loaded. Please refresh to try again.");
+        }
 
-        setEnrollments(enrollmentsResponse.data.enrollments);
-
-      } catch (error) {
-
-        setError(
-          error.response?.data?.message ||
-          "Failed to load the dashboard data"
-        );
-
+        if (enrollmentsResult.status === "fulfilled") {
+          setRecentEnrollments(enrollmentsResult.value.data.enrollments || []);
+        } else {
+          setError((current) => current || "Recent enrollments could not be loaded.");
+        }
+      } catch (loadError) {
+        setError("Dashboard data could not be loaded. Please refresh to try again.");
       } finally {
-
         setLoading(false);
-
       }
     };
 
     loadDashboard();
 
   }, []);
-
-
-  // ---------- Derived values ----------
-
-  // How many DIFFERENT students have at least one enrollment
-  const uniqueStudents = new Set(
-    enrollments.map((enrollment) => enrollment.student_id)
-  ).size;
-
-  // The 6 most recent enrollments (the backend already sorts by date DESC)
-  const recentEnrollments = enrollments.slice(0, 6);
 
 
   const formatDate = (value) => {
@@ -119,28 +112,28 @@ function AdminDashboard() {
 
           <div className="dashboard-card">
             <span className="dashboard-card-value">
-              {loading ? "..." : stats.courseCount}
+              {loading ? "..." : stats.totalCourses}
             </span>
             <span className="dashboard-card-label">Total Courses</span>
           </div>
 
           <div className="dashboard-card">
             <span className="dashboard-card-value">
-              {loading ? "..." : stats.studentCount}
+              {loading ? "..." : stats.totalStudents}
             </span>
             <span className="dashboard-card-label">Total Students</span>
           </div>
 
           <div className="dashboard-card">
             <span className="dashboard-card-value">
-              {loading ? "..." : enrollments.length}
+              {loading ? "..." : stats.totalEnrollments}
             </span>
             <span className="dashboard-card-label">Total Enrollments</span>
           </div>
 
           <div className="dashboard-card">
             <span className="dashboard-card-value">
-              {loading ? "..." : uniqueStudents}
+              {loading ? "..." : stats.studentsWithEnrollments}
             </span>
             <span className="dashboard-card-label">
               Students with Enrollments
@@ -148,6 +141,44 @@ function AdminDashboard() {
           </div>
 
         </div>
+
+        <div className="dashboard-grid">
+          <div className="dashboard-card">
+            <span className="dashboard-card-value">{loading ? "..." : stats.enrollmentsLast30Days}</span>
+            <span className="dashboard-card-label">Enrollments in the Last 30 Days</span>
+          </div>
+          <div className="dashboard-card">
+            <span className="dashboard-card-value">{loading ? "..." : stats.coursesWithoutEnrollments}</span>
+            <span className="dashboard-card-label">Courses Without Enrollments</span>
+          </div>
+        </div>
+
+        {!loading && (stats.enrollmentsByCategory.length > 0 || stats.topCourses.length > 0) && (
+          <div className="report-grid">
+            <section className="section-card">
+              <div className="section-card-header"><h2>Enrollments by Category</h2></div>
+              {stats.enrollmentsByCategory.length === 0 ? <p className="empty">No category data yet.</p> : (
+                <div className="report-list">
+                  {stats.enrollmentsByCategory.map((item) => {
+                    const maxCount = Math.max(...stats.enrollmentsByCategory.map((row) => row.enrollmentCount), 1);
+                    return <div className="report-row" key={item.category}>
+                      <div className="report-row-label"><span>{item.category}</span><strong>{item.enrollmentCount}</strong></div>
+                      <div className="report-bar-track"><div className="report-bar" style={{ width: `${(item.enrollmentCount / maxCount) * 100}%` }} /></div>
+                    </div>;
+                  })}
+                </div>
+              )}
+            </section>
+            <section className="section-card">
+              <div className="section-card-header"><h2>Top Courses</h2></div>
+              {stats.topCourses.length === 0 ? <p className="empty">No enrollments yet.</p> : (
+                <div className="table-wrapper"><table className="table"><thead><tr><th>Course</th><th>Category</th><th>Enrollments</th></tr></thead>
+                  <tbody>{stats.topCourses.map((course) => <tr key={course.courseId}><td>{course.title}</td><td>{course.category}</td><td>{course.enrollmentCount}</td></tr>)}</tbody>
+                </table></div>
+              )}
+            </section>
+          </div>
+        )}
 
 
         {/* ---------- Recent enrollments ---------- */}
