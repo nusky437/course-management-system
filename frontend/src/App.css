@@ -1248,6 +1248,42 @@ textarea.input {
   color: var(--color-muted);
 }
 
+.profile-page {
+  max-width: 900px;
+}
+
+.profile-section {
+  margin-top: 24px;
+}
+
+.profile-form {
+  max-width: 620px;
+}
+
+.profile-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 18px;
+  margin: 0;
+}
+
+.profile-details dt {
+  margin-bottom: 4px;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+.profile-details dd {
+  margin: 0;
+  color: var(--color-dark);
+}
+
+.field-error {
+  color: var(--color-error-text);
+  font-size: 0.875rem;
+}
+
 
 /* =========================================
    404 page

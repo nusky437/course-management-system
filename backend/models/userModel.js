@@ -5,7 +5,9 @@ const User = {
   // Find user by username
   async findByUsername(username) {
     const [rows] = await db.execute(
-      "SELECT * FROM users WHERE username = ?",
+      `SELECT id, username, password, full_name, role
+       FROM users
+       WHERE username = ?`,
       [username]
     );
 
@@ -23,6 +25,31 @@ const User = {
     );
 
     return rows[0];
+  },
+
+  async findByIdWithPassword(id) {
+    const [rows] = await db.execute(
+      `SELECT id, username, password, full_name, role
+       FROM users
+       WHERE id = ?`,
+      [id]
+    );
+
+    return rows[0];
+  },
+
+  async updateFullName(id, fullName) {
+    await db.execute(
+      "UPDATE users SET full_name = ? WHERE id = ?",
+      [fullName, id]
+    );
+  },
+
+  async updatePassword(id, passwordHash) {
+    await db.execute(
+      "UPDATE users SET password = ? WHERE id = ?",
+      [passwordHash, id]
+    );
   },
 
 

@@ -5,6 +5,7 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Courses from "./pages/Courses";
 import CourseDetails from "./pages/CourseDetails";
+import Profile from "./pages/Profile";
 
 // ---------- Student pages ----------
 import StudentDashboard from "./pages/StudentDashboard";
@@ -39,6 +40,14 @@ function App() {
 
         <Route path="/courses/:id" element={<CourseDetails />} />
 
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
 
         {/* STUDENT ROUTES - login required, role = student */}
 
